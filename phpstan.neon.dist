@@ -1,0 +1,24 @@
+includes:
+    - vendor/bitexpert/phpstan-magento/extension.neon
+parameters:
+    level: 4
+    # Magento's magic getters come from PHPDoc-typed values; don't treat those
+    # doc types as certain (avoids false "always false" strict-comparison noise).
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
+    paths:
+        - Helper
+        - Model
+        - Console
+    ignoreErrors:
+        # Magento magic getters/setters resolved via __call on base classes.
+        - '#Call to an undefined method Magento\\Framework\\DataObject::#'
+        - '#Call to an undefined method Magento\\Framework\\Model\\AbstractModel::#'
+        - '#Call to an undefined method Magento\\Framework\\Model\\ResourceModel\\Db\\AbstractDb::#'
+        - '#Call to an undefined method Magento\\Store\\Api\\Data\\StoreInterface::#'
+        - '#Call to an undefined method Magento\\Framework\\Api\\ExtensionAttributesInterface::getStockItem\(\)#'
+        - '#Using nullsafe method call on non-nullable type Magento\\Framework\\Api\\ExtensionAttributesInterface#'
+        # Generated collection factory is invisible to static analysis.
+        - '#Magento\\Catalog\\Model\\ResourceModel\\Product\\Attribute\\CollectionFactory#'
+        # getUsedProducts() is typed ProductInterface[] but yields full Product models.
+        - '#should return array<Magento\\Catalog\\Model\\Product> but returns array<int<0, max>, Magento\\Catalog\\Api\\Data\\ProductInterface>#'

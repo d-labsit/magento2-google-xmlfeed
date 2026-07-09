@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <!-- Deep-link into the store config section; hangs under Core's shared "Dlabsit" menu. -->
+        <add id="Dlabsit_GoogleFeed::googlefeed"
+             title="Google Feed"
+             module="Dlabsit_GoogleFeed"
+             sortOrder="50"
+             parent="Dlabsit_Core::dlabsit"
+             action="adminhtml/system_config/edit/section/dlabsit_googlefeed"
+             resource="Dlabsit_GoogleFeed::config"/>
+    </menu>
+</config>

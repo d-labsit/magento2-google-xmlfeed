@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <!-- Dedicated log channel → var/log/dlabsit_google_feed.log -->
+    <type name="Dlabsit\GoogleFeed\Logger\Handler">
+        <arguments>
+            <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem\Driver\File</argument>
+        </arguments>
+    </type>
+    <type name="Dlabsit\GoogleFeed\Logger\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">dlabsit_google_feed</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">Dlabsit\GoogleFeed\Logger\Handler</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- Register this module on the Dlabsit_Core dashboard -->
+    <type name="Dlabsit\Core\Model\ModuleRegistry">
+        <arguments>
+            <argument name="modules" xsi:type="array">
+                <item name="googlefeed" xsi:type="array">
+                    <item name="code" xsi:type="string">googlefeed</item>
+                    <item name="name" xsi:type="string">Google Feed</item>
+                    <item name="description" xsi:type="string">Spec-compliant Google Merchant Center (Google Shopping) product feed generator. Streaming, store-view configurable.</item>
+                    <item name="composer_name" xsi:type="string">dlabsit/module-google-feed</item>
+                    <item name="license_tier" xsi:type="string">free</item>
+                    <item name="min_php_version" xsi:type="string">8.3</item>
+                    <item name="min_magento_version" xsi:type="string">2.4.7</item>
+                    <item name="repository_url" xsi:type="string">https://github.com/dlabsit/magento2-google-xmlfeed</item>
+                    <item name="documentation_url" xsi:type="string">https://github.com/dlabsit/magento2-google-xmlfeed#readme</item>
+                    <item name="config_section" xsi:type="string">dlabsit_googlefeed</item>
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- CLI: bin/magento dlabsit:google-feed:generate -->
+    <type name="Magento\Framework\Console\CommandListInterface">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="dlabsit_googlefeed_generate" xsi:type="object">Dlabsit\GoogleFeed\Console\Command\GenerateCommand</item>
+            </argument>
+        </arguments>
+    </type>
+</config>
