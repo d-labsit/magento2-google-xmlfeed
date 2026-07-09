@@ -7,9 +7,13 @@ parameters:
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: false
     paths:
+        - Block
+        - Console
+        - Controller
+        - Cron
         - Helper
         - Model
-        - Console
+        - Setup
     ignoreErrors:
         # Magento magic getters/setters resolved via __call on base classes.
         - '#Call to an undefined method Magento\\Framework\\DataObject::#'

@@ -14,6 +14,7 @@ use Dlabsit\GoogleFeed\Model\Config\Source\DescriptionSource;
 use Dlabsit\GoogleFeed\Model\Google\Item;
 use Dlabsit\GoogleFeed\Model\Google\Spec;
 use Dlabsit\GoogleFeed\Model\Google\Validator\Gtin;
+use Dlabsit\GoogleFeed\Setup\Patch\Data\AddGoogleCategoryAttributes;
 use Magento\Catalog\Model\Product;
 use Magento\Catalog\Model\ResourceModel\Category\CollectionFactory as CategoryCollectionFactory;
 use Magento\Framework\UrlInterface;
@@ -73,12 +74,17 @@ class Mapper
         $special = $this->getSpecialPrice($product);
         if ($special !== null) {
             $item->salePrice = $this->spec->formatPrice($special, $currency);
+            $item->salePriceEffectiveDate = $this->resolveSaleWindow($product);
         }
 
         $this->applyIdentifiers($item, $product, $storeId);
         $this->applyClassification($item, $product, $storeId);
         $this->applyVariantAttributes($item, $product, $storeId);
         $this->applyShipping($item, $product, $parent, $storeId, $currency);
+        $this->applyDimensions($item, $product, $storeId);
+        $this->applyCustomLabels($item, $product, $storeId);
+        $this->applyProductDetails($item, $product, $storeId);
+        $this->applyHighlights($item, $product, $storeId);
 
         if ($itemGroupId !== null && $itemGroupId !== '') {
             $item->itemGroupId = $this->spec->truncate($itemGroupId, Spec::LIMIT_ITEM_GROUP_ID);
@@ -125,7 +131,7 @@ class Mapper
 
     private function applyClassification(Item $item, Product $product, int $storeId): void
     {
-        $googleCategory = trim($this->config->getDefaultGoogleCategory($storeId));
+        $googleCategory = $this->resolveGoogleCategory($product, $storeId);
         if ($googleCategory !== '') {
             $item->googleProductCategory = $googleCategory;
         }
@@ -134,6 +140,173 @@ class Mapper
         if ($productType !== '') {
             $item->productType = $this->spec->truncate($productType, Spec::LIMIT_PRODUCT_TYPE);
         }
+    }
+
+    /**
+     * Resolve google_product_category with a clear precedence:
+     *   1. product-level override attribute
+     *   2. nearest category up the product's deepest path that has the attribute set
+     *   3. the store-wide default
+     */
+    private function resolveGoogleCategory(Product $product, int $storeId): string
+    {
+        $override = trim($this->readScalar($product, AddGoogleCategoryAttributes::ATTR_CODE));
+        if ($override !== '') {
+            return $override;
+        }
+        $fromCategory = $this->resolveCategoryGoogleValue($product, $storeId);
+        if ($fromCategory !== '') {
+            return $fromCategory;
+        }
+        return trim($this->config->getDefaultGoogleCategory($storeId));
+    }
+
+    /**
+     * Walk the product's deepest category path from leaf to root and return the
+     * first dlabsit_google_category value that is set (inheritance up the tree).
+     */
+    private function resolveCategoryGoogleValue(Product $product, int $storeId): string
+    {
+        $categoryIds = $product->getCategoryIds();
+        if (empty($categoryIds)) {
+            return '';
+        }
+
+        // Pick the deepest assigned category as the anchor.
+        $anchor = null;
+        $maxDepth = -1;
+        try {
+            $collection = $this->categoryCollectionFactory->create();
+            $collection->setStoreId($storeId);
+            $collection->addAttributeToSelect(['path', AddGoogleCategoryAttributes::ATTR_CODE]);
+            $collection->addFieldToFilter('entity_id', ['in' => $categoryIds]);
+            foreach ($collection as $cat) {
+                $depth = substr_count((string) $cat->getPath(), '/');
+                if ($depth > $maxDepth) {
+                    $maxDepth = $depth;
+                    $anchor = $cat;
+                }
+            }
+            if ($anchor === null) {
+                return '';
+            }
+
+            $pathIds = array_values(array_filter(
+                explode('/', (string) $anchor->getPath()),
+                static fn ($id) => $id !== ''
+            ));
+            $byId = [];
+            $pathColl = $this->categoryCollectionFactory->create();
+            $pathColl->setStoreId($storeId);
+            $pathColl->addAttributeToSelect(AddGoogleCategoryAttributes::ATTR_CODE);
+            $pathColl->addFieldToFilter('entity_id', ['in' => $pathIds]);
+            foreach ($pathColl as $cat) {
+                $byId[(int) $cat->getId()] = trim((string) $cat->getData(AddGoogleCategoryAttributes::ATTR_CODE));
+            }
+            // Leaf → root.
+            foreach (array_reverse($pathIds) as $id) {
+                $value = $byId[(int) $id] ?? '';
+                if ($value !== '') {
+                    return $value;
+                }
+            }
+        } catch (\Exception $e) {
+            $this->logger->error('Google category resolve failed', ['error' => $e->getMessage()]);
+        }
+        return '';
+    }
+
+    private function applyDimensions(Item $item, Product $product, int $storeId): void
+    {
+        $item->productLength = $this->readDimension($product, $this->config->getLengthAttribute($storeId));
+        $item->productWidth = $this->readDimension($product, $this->config->getWidthAttribute($storeId));
+        $item->productHeight = $this->readDimension($product, $this->config->getHeightAttribute($storeId));
+    }
+
+    /** A Google dimension value like "12.5 cm", or null when the attribute is unset/zero. */
+    private function readDimension(Product $product, string $attrCode): ?string
+    {
+        if ($attrCode === '') {
+            return null;
+        }
+        $raw = (float) $this->readScalar($product, $attrCode);
+        if ($raw <= 0) {
+            return null;
+        }
+        $value = rtrim(rtrim(number_format($raw, 2, '.', ''), '0'), '.');
+        return $value . ' cm';
+    }
+
+    private function applyCustomLabels(Item $item, Product $product, int $storeId): void
+    {
+        for ($i = 0; $i < \Dlabsit\GoogleFeed\Helper\Config::CUSTOM_LABEL_COUNT; $i++) {
+            $attrCode = $this->config->getCustomLabelAttribute($i, $storeId);
+            if ($attrCode === '') {
+                continue;
+            }
+            $value = trim($this->readOption($product, $attrCode));
+            if ($value !== '') {
+                $item->customLabels[$i] = $this->spec->truncate($value, 100);
+            }
+        }
+    }
+
+    private function applyProductDetails(Item $item, Product $product, int $storeId): void
+    {
+        foreach ($this->config->getDetailAttributes($storeId) as $attrCode) {
+            $value = trim($this->readOption($product, $attrCode));
+            if ($value === '') {
+                continue;
+            }
+            $item->productDetails[] = [
+                'section' => 'Specificaties',
+                'name' => $this->spec->truncate($this->attributeLabel($product, $attrCode), 140),
+                'value' => $this->spec->truncate($value, 1000),
+            ];
+        }
+    }
+
+    private function applyHighlights(Item $item, Product $product, int $storeId): void
+    {
+        $attrCode = $this->config->getHighlightAttribute($storeId);
+        if ($attrCode === '') {
+            return;
+        }
+        $raw = strip_tags($this->readScalar($product, $attrCode));
+        foreach (preg_split('/\r\n|\r|\n/', $raw) ?: [] as $line) {
+            $line = trim($line);
+            if ($line !== '') {
+                $item->productHighlights[] = $this->spec->truncate($line, 150);
+            }
+        }
+    }
+
+    private function attributeLabel(Product $product, string $attrCode): string
+    {
+        $attribute = $product->getResource()->getAttribute($attrCode);
+        if ($attribute && $attribute->getId()) {
+            $label = (string) $attribute->getDefaultFrontendLabel();
+            if ($label !== '') {
+                return $label;
+            }
+        }
+        return ucfirst(str_replace('_', ' ', $attrCode));
+    }
+
+    /** "start/end" ISO-8601 window, only when BOTH special from and to dates are set. */
+    private function resolveSaleWindow(Product $product): ?string
+    {
+        $from = $product->getSpecialFromDate();
+        $to = $product->getSpecialToDate();
+        if (!$from || !$to) {
+            return null;
+        }
+        $fromTs = strtotime((string) $from);
+        $toTs = strtotime((string) $to);
+        if ($fromTs === false || $toTs === false) {
+            return null;
+        }
+        return gmdate('Y-m-d\TH:i:sP', $fromTs) . '/' . gmdate('Y-m-d\TH:i:sP', $toTs);
     }
 
     private function applyVariantAttributes(Item $item, Product $product, int $storeId): void

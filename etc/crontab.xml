@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
+    <group id="default">
+        <job name="dlabsit_googlefeed_generate" instance="Dlabsit\GoogleFeed\Cron\Generate" method="execute">
+            <config_path>dlabsit_googlefeed/general/cron_schedule</config_path>
+        </job>
+    </group>
+</config>

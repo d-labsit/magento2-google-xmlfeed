@@ -13,29 +13,25 @@ use Magento\Store\Model\ScopeInterface;
 
 /**
  * Store-scoped configuration reader for the Google feed. All values live under
- * the `dlabsit_googlefeed/*` config section (see etc/adminhtml/system.xml).
+ * the `dlabsit_googlefeed/*` config section (see etc/adminhtml/system.xml),
+ * grouped: general · identity · content · categorization · labels · details ·
+ * dimensions · shipping.
  */
 class Config extends AbstractHelper
 {
     private const P = 'dlabsit_googlefeed/';
 
+    public const CUSTOM_LABEL_COUNT = 5;
+
     private function value(string $path, ?int $storeId): ?string
     {
-        $value = $this->scopeConfig->getValue(
-            self::P . $path,
-            ScopeInterface::SCOPE_STORE,
-            $storeId
-        );
+        $value = $this->scopeConfig->getValue(self::P . $path, ScopeInterface::SCOPE_STORE, $storeId);
         return $value === null ? null : (string) $value;
     }
 
     private function flag(string $path, ?int $storeId): bool
     {
-        return $this->scopeConfig->isSetFlag(
-            self::P . $path,
-            ScopeInterface::SCOPE_STORE,
-            $storeId
-        );
+        return $this->scopeConfig->isSetFlag(self::P . $path, ScopeInterface::SCOPE_STORE, $storeId);
     }
 
     // --- general ---
@@ -72,82 +68,127 @@ class Config extends AbstractHelper
         return $schedule !== '' ? $schedule : '30 23 * * *';
     }
 
-    // --- attribute mapping ---
+    // --- identity ---
 
     public function getUniqueIdSource(?int $storeId = null): string
     {
-        $v = (string) $this->value('attributes/unique_id_source', $storeId);
+        $v = (string) $this->value('identity/unique_id_source', $storeId);
         return $v !== '' ? $v : 'sku';
     }
 
     public function getCustomAttributeCode(?int $storeId = null): string
     {
-        return (string) $this->value('attributes/custom_attribute_code', $storeId);
+        return (string) $this->value('identity/custom_attribute_code', $storeId);
     }
 
     public function getBrandAttribute(?int $storeId = null): string
     {
-        return (string) $this->value('attributes/brand_attribute', $storeId);
+        return (string) $this->value('identity/brand_attribute', $storeId);
     }
 
     public function getGtinAttribute(?int $storeId = null): string
     {
-        return (string) $this->value('attributes/gtin_attribute', $storeId);
+        return (string) $this->value('identity/gtin_attribute', $storeId);
     }
 
     public function getMpnAttribute(?int $storeId = null): string
     {
-        return (string) $this->value('attributes/mpn_attribute', $storeId);
+        return (string) $this->value('identity/mpn_attribute', $storeId);
+    }
+
+    // --- content ---
+
+    public function getDescriptionSource(?int $storeId = null): string
+    {
+        $v = (string) $this->value('content/description_source', $storeId);
+        return $v !== '' ? $v : 'description';
     }
 
     public function getColorAttribute(?int $storeId = null): string
     {
-        return (string) $this->value('attributes/color_attribute', $storeId);
+        return (string) $this->value('content/color_attribute', $storeId);
     }
 
     public function getSizeAttribute(?int $storeId = null): string
     {
-        return (string) $this->value('attributes/size_attribute', $storeId);
+        return (string) $this->value('content/size_attribute', $storeId);
     }
-
-    public function getWeightAttribute(?int $storeId = null): string
-    {
-        $v = (string) $this->value('attributes/weight_attribute', $storeId);
-        return $v !== '' ? $v : 'weight';
-    }
-
-    public function getDescriptionSource(?int $storeId = null): string
-    {
-        $v = (string) $this->value('attributes/description_source', $storeId);
-        return $v !== '' ? $v : 'description';
-    }
-
-    // --- product defaults ---
 
     public function getCondition(?int $storeId = null): string
     {
-        $v = (string) $this->value('product/condition', $storeId);
+        $v = (string) $this->value('content/condition', $storeId);
         return $v !== '' ? $v : 'new';
-    }
-
-    public function getDefaultGoogleCategory(?int $storeId = null): string
-    {
-        return (string) $this->value('product/default_google_category', $storeId);
     }
 
     public function getDefaultGender(?int $storeId = null): string
     {
-        return (string) $this->value('product/default_gender', $storeId);
+        return (string) $this->value('content/default_gender', $storeId);
     }
 
     public function getDefaultAgeGroup(?int $storeId = null): string
     {
-        return (string) $this->value('product/default_age_group', $storeId);
+        return (string) $this->value('content/default_age_group', $storeId);
+    }
+
+    // --- categorization ---
+
+    public function getDefaultGoogleCategory(?int $storeId = null): string
+    {
+        return (string) $this->value('categorization/default_google_category', $storeId);
+    }
+
+    // --- labels ---
+
+    /** Product-attribute code whose value fills custom_label_<index> (0..4). */
+    public function getCustomLabelAttribute(int $index, ?int $storeId = null): string
+    {
+        return (string) $this->value('labels/custom_label_' . $index, $storeId);
+    }
+
+    // --- details ---
+
+    /**
+     * Attribute codes to emit as product_detail entries.
+     *
+     * @return string[]
+     */
+    public function getDetailAttributes(?int $storeId = null): array
+    {
+        $raw = (string) $this->value('details/detail_attributes', $storeId);
+        return $raw === '' ? [] : array_values(array_filter(array_map('trim', explode(',', $raw))));
+    }
+
+    public function getHighlightAttribute(?int $storeId = null): string
+    {
+        return (string) $this->value('details/highlight_attribute', $storeId);
+    }
+
+    // --- dimensions ---
+
+    public function getWeightAttribute(?int $storeId = null): string
+    {
+        $v = (string) $this->value('dimensions/weight_attribute', $storeId);
+        return $v !== '' ? $v : 'weight';
     }
 
     public function includeShippingWeight(?int $storeId = null): bool
     {
-        return $this->flag('product/include_shipping_weight', $storeId);
+        return $this->flag('dimensions/include_shipping_weight', $storeId);
+    }
+
+    public function getLengthAttribute(?int $storeId = null): string
+    {
+        return (string) $this->value('dimensions/length_attribute', $storeId);
+    }
+
+    public function getWidthAttribute(?int $storeId = null): string
+    {
+        return (string) $this->value('dimensions/width_attribute', $storeId);
+    }
+
+    public function getHeightAttribute(?int $storeId = null): string
+    {
+        return (string) $this->value('dimensions/height_attribute', $storeId);
     }
 
     // --- shipping ---

@@ -11,24 +11,42 @@
                 <batch_size>500</batch_size>
                 <cron_schedule>30 23 * * *</cron_schedule>
             </general>
-            <attributes>
+            <identity>
                 <unique_id_source>sku</unique_id_source>
                 <custom_attribute_code/>
                 <brand_attribute>manufacturer</brand_attribute>
-                <mpn_attribute>sku</mpn_attribute>
                 <gtin_attribute/>
+                <mpn_attribute>sku</mpn_attribute>
+            </identity>
+            <content>
+                <description_source>description</description_source>
                 <color_attribute/>
                 <size_attribute/>
-                <weight_attribute>weight</weight_attribute>
-                <description_source>description</description_source>
-            </attributes>
-            <product>
                 <condition>new</condition>
-                <default_google_category/>
                 <default_gender/>
                 <default_age_group/>
+            </content>
+            <categorization>
+                <default_google_category/>
+            </categorization>
+            <labels>
+                <custom_label_0/>
+                <custom_label_1/>
+                <custom_label_2/>
+                <custom_label_3/>
+                <custom_label_4/>
+            </labels>
+            <details>
+                <detail_attributes/>
+                <highlight_attribute/>
+            </details>
+            <dimensions>
+                <weight_attribute>weight</weight_attribute>
                 <include_shipping_weight>1</include_shipping_weight>
-            </product>
+                <length_attribute/>
+                <width_attribute/>
+                <height_attribute/>
+            </dimensions>
             <shipping>
                 <country/>
                 <service/>

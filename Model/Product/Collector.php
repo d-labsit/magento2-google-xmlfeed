@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Dlabsit\GoogleFeed\Model\Product;
 
 use Dlabsit\GoogleFeed\Helper\Config;
+use Dlabsit\GoogleFeed\Setup\Patch\Data\AddGoogleCategoryAttributes;
 use Magento\Catalog\Model\Product;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Model\Product\Type;
@@ -100,18 +101,30 @@ class Collector
 
         // Optional mapping attributes are per-shop — drop empty codes and dedupe
         // so a disabled mapping never selects an empty or duplicate attribute.
-        $attributes = array_values(array_unique(array_filter([
-            'name', 'url_key', 'price', 'special_price',
-            'special_from_date', 'special_to_date',
-            'image', 'small_image', 'description', 'short_description',
-            'meta_description', 'weight', 'status', 'visibility',
+        $mapped = [
             $this->config->getBrandAttribute($storeId),
             $this->config->getGtinAttribute($storeId),
             $this->config->getMpnAttribute($storeId),
             $this->config->getColorAttribute($storeId),
             $this->config->getSizeAttribute($storeId),
             $this->config->getWeightAttribute($storeId),
-        ], static fn (string $code): bool => $code !== '')));
+            $this->config->getLengthAttribute($storeId),
+            $this->config->getWidthAttribute($storeId),
+            $this->config->getHeightAttribute($storeId),
+            $this->config->getHighlightAttribute($storeId),
+            AddGoogleCategoryAttributes::ATTR_CODE,
+        ];
+        for ($i = 0; $i < Config::CUSTOM_LABEL_COUNT; $i++) {
+            $mapped[] = $this->config->getCustomLabelAttribute($i, $storeId);
+        }
+        $mapped = array_merge($mapped, $this->config->getDetailAttributes($storeId));
+
+        $attributes = array_values(array_unique(array_filter(array_merge([
+            'name', 'url_key', 'price', 'special_price',
+            'special_from_date', 'special_to_date',
+            'image', 'small_image', 'description', 'short_description',
+            'meta_description', 'weight', 'status', 'visibility',
+        ], $mapped), static fn (string $code): bool => $code !== '')));
 
         $collection->addAttributeToSelect($attributes);
         $collection->addAttributeToFilter('status', Status::STATUS_ENABLED);

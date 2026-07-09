@@ -30,6 +30,7 @@ class Item
 
     // Optional
     public ?string $salePrice = null;
+    public ?string $salePriceEffectiveDate = null;
     public ?string $brand = null;
     public ?string $gtin = null;
     public ?string $mpn = null;
@@ -42,7 +43,19 @@ class Item
     public ?string $gender = null;
     public ?string $ageGroup = null;
     public ?string $shippingWeight = null;
+    public ?string $productLength = null;
+    public ?string $productWidth = null;
+    public ?string $productHeight = null;
 
     /** @var array{country: string, service: string, price: string}|null */
     public ?array $shipping = null;
+
+    /** @var array<int, string> custom_label_0 … custom_label_4 (index => value) */
+    public array $customLabels = [];
+
+    /** @var array<int, array{section: string, name: string, value: string}> */
+    public array $productDetails = [];
+
+    /** @var string[] product_highlight values */
+    public array $productHighlights = [];
 }

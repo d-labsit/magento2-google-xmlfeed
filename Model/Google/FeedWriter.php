@@ -71,6 +71,9 @@ class FeedWriter
             $this->g('price', $item->price);
             if ($item->salePrice !== null) {
                 $this->g('sale_price', $item->salePrice);
+                if ($item->salePriceEffectiveDate !== null) {
+                    $this->g('sale_price_effective_date', $item->salePriceEffectiveDate);
+                }
             }
             $this->g('condition', $item->condition);
 
@@ -111,6 +114,34 @@ class FeedWriter
             if ($item->shippingWeight !== null) {
                 $this->g('shipping_weight', $item->shippingWeight);
             }
+            if ($item->productLength !== null) {
+                $this->g('product_length', $item->productLength);
+            }
+            if ($item->productWidth !== null) {
+                $this->g('product_width', $item->productWidth);
+            }
+            if ($item->productHeight !== null) {
+                $this->g('product_height', $item->productHeight);
+            }
+
+            foreach ($item->customLabels as $index => $value) {
+                if ($value !== '') {
+                    $this->gCdata('custom_label_' . $index, $value);
+                }
+            }
+
+            foreach ($item->productHighlights as $highlight) {
+                $this->gCdata('product_highlight', $highlight);
+            }
+
+            foreach ($item->productDetails as $detail) {
+                $this->xml->startElement(Spec::NAMESPACE_PREFIX . ':product_detail');
+                $this->gCdata('section_name', $detail['section']);
+                $this->gCdata('attribute_name', $detail['name']);
+                $this->gCdata('attribute_value', $detail['value']);
+                $this->xml->endElement();
+            }
+
             if ($item->shipping !== null) {
                 $this->xml->startElement(Spec::NAMESPACE_PREFIX . ':shipping');
                 $this->g('country', $item->shipping['country']);
