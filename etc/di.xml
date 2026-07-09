@@ -26,6 +26,7 @@
                     <item name="name" xsi:type="string">Google Feed</item>
                     <item name="description" xsi:type="string">Spec-compliant Google Merchant Center (Google Shopping) product feed generator. Streaming, store-view configurable.</item>
                     <item name="composer_name" xsi:type="string">dlabsit/module-google-feed</item>
+                    <item name="version" xsi:type="string">1.0.0</item>
                     <item name="license_tier" xsi:type="string">free</item>
                     <item name="min_php_version" xsi:type="string">8.3</item>
                     <item name="min_magento_version" xsi:type="string">2.4.7</item>
